@@ -78,6 +78,26 @@ try {
       ),
     );
   }
+  // The legacy server/core alias must never import the Node server adapter.
+  const alias = await build({
+    stdin: {
+      contents: 'export { RPCPeer } from "@wsrpc/server/core";',
+      resolveDir: process.cwd(),
+    },
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    conditions: ["workerd"],
+    treeShaking: false,
+    write: false,
+    metafile: true,
+    logLevel: "silent",
+  });
+  assert.ok(
+    Object.keys(alias.metafile.inputs).every(
+      (path) => !path.replaceAll("\\", "/").endsWith("/node.js"),
+    ),
+  );
   const worker = await bundle("examples/workers/worker.ts", ["workerd"]);
   const scriptPath = join(temp, "worker.mjs");
   await writeFile(scriptPath, worker.outputFiles[0].text);

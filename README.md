@@ -18,6 +18,21 @@ available. The shared protocol lives in `@wsrpc/client/core`; the server
 re-exports its route classes, errors and types. Both packages use version 4.5.0,
 continuing the existing client's published 4.4.1 series.
 
+## Choose an import
+
+| Import               | Purpose                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `@wsrpc/client`      | Original browser constructor (ESM default or CommonJS), plus core exports                       |
+| `@wsrpc/client/core` | Portable RPCPeer, routes and protocol types for Workers, Deno, Bun or native browser transports |
+| `@wsrpc/client/node` | Optional Node.js client using `ws`                                                              |
+| `@wsrpc/server`      | Node HTTP upgrade adapter and server API                                                        |
+| `@wsrpc/server/core` | Exact compatibility alias of `@wsrpc/client/core`, without loading the Node adapter             |
+
+Use the client package directly for new portable applications. Installing the
+server package installs Node dependencies, even when only its core alias is
+imported. The `workerd` and `worker` root conditions select the portable core;
+they deliberately have no legacy browser default constructor.
+
 ## Run from this checkout
 
 ```sh

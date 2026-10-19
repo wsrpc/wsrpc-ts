@@ -124,8 +124,9 @@ try {
     import { WSRPCClient } from '@wsrpc/client/node';
     import { RPCPeer as A } from '@wsrpc/client/core';
     import { RPCPeer as B } from '@wsrpc/server';
+    import { RPCPeer as C } from '@wsrpc/server/core';
     import { createRequire } from 'node:module';
-    if (A !== B || typeof WSRPC !== 'function' || typeof WSRPCClient.connect !== 'function') process.exit(1);
+    if (A !== B || A !== C || typeof WSRPC !== 'function' || typeof WSRPCClient.connect !== 'function') process.exit(1);
     if (typeof createRequire(import.meta.url)('@wsrpc/client') !== 'function') process.exit(1);
     console.log('Packed client/server imports, class identity and declarations passed');
   `,

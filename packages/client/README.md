@@ -1,5 +1,10 @@
 # @wsrpc/client
 
+Use `@wsrpc/client/core` for a portable peer in Workers, Deno or Bun. The
+root browser import preserves `new WSRPC(...)`; `@wsrpc/client/node` is the
+optional Node.js adapter. `@wsrpc/server/core` remains an exact compatibility
+alias of this core; the `@wsrpc/server` root is a Node-only server adapter.
+
 The existing WSRPC browser client, now maintained alongside `@wsrpc/server`
 in [wsrpc-ts](https://github.com/wsrpc/wsrpc-ts). Its original Git history,
 MIT license and browser API are preserved. Version 4.5 adds TypeScript
