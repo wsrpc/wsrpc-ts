@@ -6,8 +6,8 @@ client. Both ends can expose methods and call each other over one connection.
 
 The package is ESM, supports Node.js 22+, and uses `ws` for its Node transport.
 The transport-independent implementation is also exported as
-`@wsrpc/server/core`. The local package name is `@wsrpc/server`; it has not
-been published to npm by this project.
+`@wsrpc/server/core`. The package name is `@wsrpc/server`; the source-checkout instructions below
+work before an npm publication.
 
 ## Run from this checkout
 
@@ -225,3 +225,35 @@ maps, source and license notices. It contains no Python library implementation.
 
 Licensed under Apache-2.0. The original JavaScript interoperability fixture
 retains its MIT license. Contact: orlovdl@gmail.com.
+
+## Publishing releases
+
+The `publish.yml` workflow runs when a **GitHub Release is published**, just
+like the Python repositories. A tag push alone does not publish. The workflow
+checks out the release tag, derives the npm version from `v1.2.3` or `1.2.3`,
+runs the full checks and Python interoperability, and publishes the built
+artifact. The version changes only inside CI: no version commit or new tag is
+created. Tags may include SemVer prerelease suffixes such as `v1.2.3-rc.1`.
+Prerelease versions and releases marked prerelease use `next`; stable releases
+use `latest`. Build metadata suffixes are not used as npm release versions.
+
+Publishing uses GitHub OIDC with npm CLI 11.19.1 and the `npm` GitHub
+environment. Set up the package's npm trusted publisher once:
+
+| Setting           | Value                       |
+| ----------------- | --------------------------- |
+| Package           | `@wsrpc/server`             |
+| GitHub owner      | `wsrpc`                     |
+| Repository        | `wsrpc-ts`                  |
+| Workflow filename | `publish.yml`               |
+| Environment       | `npm`                       |
+| Allowed action    | Enable direct `npm publish` |
+
+For a brand-new package, initialize it from an authenticated npm maintainer
+account before configuring its package settings. That account needs access
+to the `@wsrpc` scope. Subsequent releases use OIDC without a stored npm token.
+No npm package, release or tag is created by the local checks.
+
+See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for
+account configuration. Publish a fresh version after that connection is set
+up; npm does not allow an existing name/version to be overwritten.
