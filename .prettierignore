@@ -17,3 +17,6 @@ packages/client/lib
 packages/client/LICENSE
 packages/client/Makefile
 packages/client/rollup.config.js
+
+tests/fixtures/client-4.4.1.min.js
+tests/fixtures/client-4.4.1.mjs

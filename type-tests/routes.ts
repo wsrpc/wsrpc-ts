@@ -36,3 +36,26 @@ RPC.addRoute("contextual", function (_socket, params: { value: number }) {
   const peer: RPCPeer = this;
   return { value: params.value, same: peer === getCurrentSocket() };
 });
+
+import type { BrowserOptions, BrowserFrame } from "@wsrpc/client";
+import type { NWsRPC } from "@wsrpc/client/wsrpc.d.ts";
+const options: BrowserOptions = {
+  onFrame(frame) {
+    const direction: "in" | "out" = frame.direction;
+    if (typeof frame.data === "string") JSON.parse(frame.data);
+    // @ts-expect-error observer metadata is read-only
+    frame.direction = "out";
+    void direction;
+  },
+};
+new WSRPC("ws://localhost/ws/", 1000, options);
+// @ts-expect-error unsupported observer option
+new WSRPC("ws://localhost/ws/", 1000, { codec: {} });
+export function legacyConstructor(Client: NWsRPC.Main.WSRPC) {
+  return new Client("ws://localhost/ws/", 1000, {
+    onFrame(frame) {
+      const compatible: BrowserFrame = frame;
+      void compatible;
+    },
+  });
+}

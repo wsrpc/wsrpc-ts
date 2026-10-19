@@ -10,7 +10,13 @@ RPC.addRoute("echo", (_socket, params: unknown) => params);
 RPC.addRoute("reverse", (socket, params: { value: number }) =>
   socket.call("double", params),
 );
-for (const mode of ["esm", "commonjs", "script", "subpath"]) {
+for (const mode of [
+  "esm",
+  "commonjs",
+  "script",
+  "subpath",
+  "published-4.4.1",
+]) {
   test(`the client package ${mode} entry supports bidirectional RPC`, async () => {
     const f = await fixture(RPC);
     try {

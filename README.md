@@ -279,6 +279,30 @@ maps, source and license notices. It contains no Python library implementation.
 
 The server is licensed under Apache-2.0; the client retains its MIT license. Contact: orlovdl@gmail.com.
 
+## Observe raw browser frames
+
+The third constructor argument is optional. Existing `new WSRPC(url)` and
+`new WSRPC(url, reconnectTimeout)` calls keep their behavior:
+
+```javascript
+const rpc = new WSRPC("ws://127.0.0.1:8000/ws/", 1000, {
+  onFrame({ direction, data }) {
+    console.log(direction, data); // "in" or "out", unchanged application payload
+  },
+});
+rpc.connect();
+```
+
+Incoming payloads are observed before JSON parsing, including malformed JSON.
+Outgoing payloads are observed once after `WebSocket.send` accepts them;
+queued calls appear when flushed, rather than when queued. This covers RPC
+calls, callback results/errors, protocol errors and `sendRaw` payloads.
+WebSocket control frames are managed by the browser and are not exposed.
+The metadata object is frozen. Binary payloads are passed by reference for
+inspection. Synchronous exceptions and rejected Promises from `onFrame` are
+reported to `console.error` and do not affect RPC dispatch.
+`WSRPC.DEBUG` and `WSRPC.TRACE` retain their original boolean behavior.
+
 ## Workers and other WebSocket runtimes
 
 Use `@wsrpc/client/core` for a transport-independent peer in Workers, Deno or

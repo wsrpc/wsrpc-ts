@@ -87,7 +87,7 @@ const readyState = Object.freeze({
 });
 
 class WSRPC {
-	constructor (URL, reconnectTimeout = 1000) {
+	constructor (URL, reconnectTimeout = 1000, options = {}) {
 		let self = this;
 
 		URL = getAbsoluteWsUrl(URL);
@@ -110,6 +110,26 @@ class WSRPC {
 		};
 
 		self.callQueue = [];
+
+		function reportObserverError(error) {
+			try { console.error(error); } catch (_) { /* Observers never affect RPC. */ }
+		}
+
+		function observeFrame(direction, data) {
+			if (!options || typeof options.onFrame !== 'function') return;
+			try {
+				Promise.resolve(options.onFrame(Object.freeze({ direction, data })))
+					.catch(reportObserverError);
+			} catch (error) {
+				reportObserverError(error);
+			}
+		}
+
+		function send(data) {
+			const result = self.socket.send(data);
+			observeFrame('out', data);
+			return result;
+		}
 
 		function createSocket() {
 			let ws = new WebSocket(URL);
@@ -214,7 +234,7 @@ class WSRPC {
 
 				while (0 < self.callQueue.length) {
 					// noinspection JSUnresolvedFunction
-					self.socket.send(JSON.stringify(self.callQueue.shift(), 0, 1));
+					send(JSON.stringify(self.callQueue.shift(), 0, 1));
 				}
 
 				callEvents('onconnect', ev);
@@ -231,14 +251,14 @@ class WSRPC {
 				deferred.promise.then(
 					function (result) {
 						if (connectionNumber !== self.connectionNumber) return;
-						self.socket.send(JSON.stringify({
+						send(JSON.stringify({
 							id: data.id,
 							result: result || null
 						}));
 					},
 					function (error) {
 						if (connectionNumber !== self.connectionNumber) return;
-						self.socket.send(JSON.stringify({
+						send(JSON.stringify({
 							id: data.id,
 							error: error || null
 						}));
@@ -297,6 +317,7 @@ class WSRPC {
 			}
 
 			ws.onmessage = function (message) {
+				observeFrame('in', message.data);
 				log('ONMESSAGE CALLED', 'STATE', self.public.state());
 				trace(message);
 
@@ -335,7 +356,7 @@ class WSRPC {
 						id: data ? data.id : null
 					};
 
-					self.socket.send(JSON.stringify(err));
+					send(JSON.stringify(err));
 					console.error(exception);
 				}
 			};
@@ -357,7 +378,7 @@ class WSRPC {
 
 			if (state === 'OPEN') {
 				self.store[self.id] = deferred;
-				self.socket.send(JSON.stringify(callObj));
+				send(JSON.stringify(callObj));
 			} else if (state === 'CONNECTING') {
 				log('SOCKET IS', state);
 				self.store[self.id] = deferred;
@@ -435,7 +456,7 @@ class WSRPC {
 			    return self.socketEventsListeners.splice(index, 1).length;
 			},
             sendRaw: function (data) {
-                return self.socket.send(data);
+                return send(data);
             }
 		});
 

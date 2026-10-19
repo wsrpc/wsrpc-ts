@@ -12,6 +12,14 @@ export interface BrowserProxy {
   <T = unknown>(params?: unknown): Promise<T>;
   [method: string]: BrowserProxy;
 }
+export interface BrowserFrame {
+  readonly direction: "in" | "out";
+  readonly data: string | ArrayBufferLike | ArrayBufferView | Blob;
+}
+export interface BrowserOptions {
+  /** Receive raw payloads; observer failures are reported without affecting RPC. */
+  onFrame?: (frame: BrowserFrame) => unknown;
+}
 export interface BrowserCallOptions {
   noWait?: boolean;
 }
@@ -53,6 +61,7 @@ declare const WSRPC: {
   new <Remote extends object = never>(
     url: string,
     reconnectTimeout?: number,
+    options?: BrowserOptions,
   ): BrowserClient<Remote>;
 };
 export default WSRPC;

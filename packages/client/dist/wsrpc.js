@@ -108,6 +108,7 @@
   });
   var WSRPC = /*#__PURE__*/_createClass(function WSRPC(URL) {
     var reconnectTimeout = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1000;
+    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
     _classCallCheck(this, WSRPC);
     var self = this;
     URL = getAbsoluteWsUrl(URL);
@@ -128,6 +129,27 @@
       onchange: []
     };
     self.callQueue = [];
+    function reportObserverError(error) {
+      try {
+        console.error(error);
+      } catch (_) {/* Observers never affect RPC. */}
+    }
+    function observeFrame(direction, data) {
+      if (!options || typeof options.onFrame !== 'function') return;
+      try {
+        Promise.resolve(options.onFrame(Object.freeze({
+          direction: direction,
+          data: data
+        }))).catch(reportObserverError);
+      } catch (error) {
+        reportObserverError(error);
+      }
+    }
+    function send(data) {
+      var result = self.socket.send(data);
+      observeFrame('out', data);
+      return result;
+    }
     function createSocket() {
       var ws = new WebSocket(URL);
       var rejectQueue = function rejectQueue() {
@@ -215,7 +237,7 @@
         trace(ev);
         while (0 < self.callQueue.length) {
           // noinspection JSUnresolvedFunction
-          self.socket.send(JSON.stringify(self.callQueue.shift(), 0, 1));
+          send(JSON.stringify(self.callQueue.shift(), 0, 1));
         }
         callEvents('onconnect', ev);
         callEvents('onchange', ev);
@@ -226,13 +248,13 @@
         var deferred = new Deferred();
         deferred.promise.then(function (result) {
           if (connectionNumber !== self.connectionNumber) return;
-          self.socket.send(JSON.stringify({
+          send(JSON.stringify({
             id: data.id,
             result: result || null
           }));
         }, function (error) {
           if (connectionNumber !== self.connectionNumber) return;
-          self.socket.send(JSON.stringify({
+          send(JSON.stringify({
             id: data.id,
             error: error || null
           }));
@@ -271,6 +293,7 @@
         return deferred.reject(data.error);
       }
       ws.onmessage = function (message) {
+        observeFrame('in', message.data);
         log('ONMESSAGE CALLED', 'STATE', self.public.state());
         trace(message);
         if (message.type !== 'message') return;
@@ -303,7 +326,7 @@
             result: null,
             id: data ? data.id : null
           };
-          self.socket.send(JSON.stringify(err));
+          send(JSON.stringify(err));
           console.error(exception);
         }
       };
@@ -320,7 +343,7 @@
       var state = self.public.state();
       if (state === 'OPEN') {
         self.store[self.id] = deferred;
-        self.socket.send(JSON.stringify(callObj));
+        send(JSON.stringify(callObj));
       } else if (state === 'CONNECTING') {
         log('SOCKET IS', state);
         self.store[self.id] = deferred;
@@ -397,7 +420,7 @@
         return self.socketEventsListeners.splice(index, 1).length;
       },
       sendRaw: function sendRaw(data) {
-        return self.socket.send(data);
+        return send(data);
       }
     });
     self.public.addRoute('log', function (argsObj) {

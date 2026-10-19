@@ -6,7 +6,7 @@ const mode = process.argv[3];
 let WSRPC;
 if (mode === "commonjs")
   WSRPC = createRequire(import.meta.url)("@wsrpc/client");
-else if (mode === "script") {
+else if (mode === "script" || mode === "published-4.4.1") {
   const context = vm.createContext({
     WebSocket,
     console,
@@ -15,7 +15,12 @@ else if (mode === "script") {
   });
   vm.runInContext(
     readFileSync(
-      new URL("../../packages/client/dist/wsrpc.min.js", import.meta.url),
+      new URL(
+        mode === "published-4.4.1"
+          ? "./client-4.4.1.min.js"
+          : "../../packages/client/dist/wsrpc.min.js",
+        import.meta.url,
+      ),
       "utf8",
     ),
     context,
