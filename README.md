@@ -22,16 +22,15 @@ continuing the existing client's published 4.4.1 series.
 
 | Import               | Purpose                                                                                         |
 | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `@wsrpc/client`      | Original browser constructor (ESM default or CommonJS), plus core exports                       |
+| `@wsrpc/client`      | Original browser constructor (ESM default or CommonJS)                                          |
 | `@wsrpc/client/core` | Portable RPCPeer, routes and protocol types for Workers, Deno, Bun or native browser transports |
 | `@wsrpc/client/node` | Optional Node.js client using `ws`                                                              |
 | `@wsrpc/server`      | Node HTTP upgrade adapter and server API                                                        |
 | `@wsrpc/server/core` | Exact compatibility alias of `@wsrpc/client/core`, without loading the Node adapter             |
 
 Use the client package directly for new portable applications. Installing the
-server package installs Node dependencies, even when only its core alias is
-imported. The `workerd` and `worker` root conditions select the portable core;
-they deliberately have no legacy browser default constructor.
+server package is intended for Node applications. Packaging and condition
+resolution are described in [the development guide](DEVELOPMENT.md).
 
 ## Run from this checkout
 
@@ -313,17 +312,17 @@ Outgoing payloads are observed once after `WebSocket.send` accepts them;
 queued calls appear when flushed, rather than when queued. This covers RPC
 calls, callback results/errors, protocol errors and `sendRaw` payloads.
 WebSocket control frames are managed by the browser and are not exposed.
-The metadata object is frozen. Binary payloads are passed by reference for
-inspection. Synchronous exceptions and rejected Promises from `onFrame` are
-reported to `console.error` and do not affect RPC dispatch.
+This is observation only: return values are ignored and Promises are never
+awaited. The metadata object is frozen; mutable binary payloads are copied so
+an observer cannot change transport data. Synchronous exceptions and rejected
+Promises are reported to `console.error` and do not affect RPC dispatch, even
+if error reporting itself fails.
 `WSRPC.DEBUG` and `WSRPC.TRACE` retain their original boolean behavior.
 
 ## Workers and other WebSocket runtimes
 
 Use `@wsrpc/client/core` for a transport-independent peer in Workers, Deno or
-Bun. It has no Node imports or runtime dependencies. The root import under
-`workerd` or `worker` conditions resolves directly to this core; ordinary browser
-and Node imports keep the existing browser default export.
+Bun. The host supplies the WebSocket transport.
 
 The host supplies a Transport and feeds frames into `peer.receive()`. Here is
 a complete Cloudflare Worker, also checked in `examples/workers/worker.ts`:

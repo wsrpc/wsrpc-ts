@@ -36,6 +36,8 @@ jobs:
         run: node tools/release-version.mjs
       - run: npm run check
       - run: npm run test:interop
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
       - name: Build and verify both npm artifacts
         run: npm run test:packages
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

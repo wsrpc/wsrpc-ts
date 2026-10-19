@@ -56,7 +56,15 @@ export function loadClient(path) {
     },
   });
   vm.runInContext(source, context);
-  return { Client: context.WSRPC, sockets, timers, wire, incoming, errors };
+  return {
+    Client: context.WSRPC,
+    sockets,
+    timers,
+    wire,
+    incoming,
+    errors,
+    context,
+  };
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const last = (socket) => JSON.parse(socket.sent.at(-1));

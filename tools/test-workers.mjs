@@ -52,6 +52,26 @@ assert.doesNotMatch(
 const temp = await mkdtemp(join(tmpdir(), "wsrpc-worker-"));
 let runtime;
 try {
+  // The legacy ESM facade must not load modern core syntax or platform adapters.
+  const browser = await build({
+    stdin: {
+      contents:
+        'import WSRPC from "@wsrpc/client"; globalThis.LegacyClient = WSRPC;',
+      resolveDir: process.cwd(),
+    },
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    treeShaking: false,
+    write: false,
+    metafile: true,
+    logLevel: "silent",
+  });
+  assert.ok(
+    Object.keys(browser.metafile.inputs).every(
+      (path) => !/lib\/(core|node)\.js$/.test(path.replaceAll("\\", "/")),
+    ),
+  );
   // Root and explicit core must resolve independently of the browser facade.
   for (const condition of ["workerd", "worker"]) {
     const result = await build({

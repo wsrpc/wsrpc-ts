@@ -1,12 +1,10 @@
 # @wsrpc/server
 
-This package is the **Node.js adapter**. For Workers, Deno or Bun, install
-`@wsrpc/client` and import `RPCPeer` from `@wsrpc/client/core` instead.
-`@wsrpc/server/core` remains an exact, transport-independent compatibility alias
-of that core; it does not load the Node adapter. Installing the server package
-still installs its Node dependencies, so new portable applications should use
-the client package directly. The root `@wsrpc/server` import loads `ws` and
-`node:async_hooks`. No existing export paths have been removed.
+Use this server with Node.js HTTP, Express or Fastify. For Workers, Deno or Bun,
+use `RPCPeer` from `@wsrpc/client/core` with the host's WebSocket API.
+`@wsrpc/server/core` remains an alias of that core. See the
+[development guide](https://github.com/wsrpc/wsrpc-ts/blob/main/DEVELOPMENT.md)
+for packaging details.
 
 Bidirectional WebSocket RPC for Node.js and TypeScript. It uses the WSRPC
 protocol shared by `wsrpc-aiohttp`, `wsrpc-asgi` and the original browser

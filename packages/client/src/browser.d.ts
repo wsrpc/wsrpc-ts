@@ -9,7 +9,7 @@ export interface Deferred<T = unknown> {
 export type ClientEvent = "onconnect" | "onerror" | "onclose" | "onchange";
 export type ClientState = "CONNECTING" | "OPEN" | "CLOSING" | "CLOSED";
 export interface BrowserProxy {
-  <T = unknown>(params?: unknown): Promise<T>;
+  <T = unknown>(params?: unknown, options?: BrowserCallOptions): Promise<T>;
   [method: string]: BrowserProxy;
 }
 export interface BrowserFrame {
@@ -34,7 +34,7 @@ export interface BrowserClient<Remote extends object = never> {
     callback: (event: Event) => unknown,
   ): number;
   removeEventListener(event: ClientEvent, index: number): boolean;
-  onEvent(event: ClientEvent): Promise<Event>;
+  onEvent(event: ClientEvent): Promise<void>;
   addRoute(
     name: string,
     callback: (this: Deferred, params: any) => unknown,

@@ -1,9 +1,7 @@
 # @wsrpc/client
 
-Use `@wsrpc/client/core` for a portable peer in Workers, Deno or Bun. The
-root browser import preserves `new WSRPC(...)`; `@wsrpc/client/node` is the
-optional Node.js adapter. `@wsrpc/server/core` remains an exact compatibility
-alias of this core; the `@wsrpc/server` root is a Node-only server adapter.
+For browsers, import the default `WSRPC` constructor. Node clients use
+`@wsrpc/client/node`; Worker, Deno and Bun adapters use `@wsrpc/client/core`.
 
 The existing WSRPC browser client, now maintained alongside `@wsrpc/server`
 in [wsrpc-ts](https://github.com/wsrpc/wsrpc-ts). Its original Git history,
@@ -66,17 +64,17 @@ Outgoing payloads are observed once after `WebSocket.send` accepts them;
 queued calls appear when flushed, rather than when queued. This covers RPC
 calls, callback results/errors, protocol errors and `sendRaw` payloads.
 WebSocket control frames are managed by the browser and are not exposed.
-The metadata object is frozen. Binary payloads are passed by reference for
-inspection. Synchronous exceptions and rejected Promises from `onFrame` are
-reported to `console.error` and do not affect RPC dispatch.
+This is observation only: return values are ignored and Promises are never
+awaited. The metadata object is frozen; mutable binary payloads are copied so
+an observer cannot change transport data. Synchronous exceptions and rejected
+Promises are reported to `console.error` and do not affect RPC dispatch, even
+if error reporting itself fails.
 `WSRPC.DEBUG` and `WSRPC.TRACE` retain their original boolean behavior.
 
 ## Workers and other WebSocket runtimes
 
 Use `@wsrpc/client/core` for a transport-independent peer in Workers, Deno or
-Bun. It has no Node imports or runtime dependencies. The root import under
-`workerd` or `worker` conditions resolves directly to this core; ordinary browser
-and Node imports keep the existing browser default export.
+Bun. It works with a host-provided WebSocket transport.
 
 The host supplies a Transport and feeds frames into `peer.receive()`. Here is
 a complete Cloudflare Worker, also checked in `examples/workers/worker.ts`:
@@ -131,15 +129,14 @@ export default {
 No `nodejs_compat` flag is needed. Use connection-bound Route classes or the
 explicit socket argument; implicit async-local context requires a host-provided
 context storage implementation. The Node adapter installs it automatically.
-Only the core is portable: `@wsrpc/client/node` and `@wsrpc/server` are Node
-adapters. Deno/Bun applications can supply their native WebSocket transport;
-the workerd integration is tested directly with Miniflare.
+Deno/Bun applications can supply their native WebSocket transport. The
+alternate `@wsrpc/server/core` path is kept as an alias; use the client package
+directly for portable applications.
 
 See [Cloudflare's WebSocket API](https://developers.cloudflare.com/workers/runtime-apis/websockets/).
 
-`npm run test:workers` checks condition resolution, the complete module graph,
-Worker declarations and a real bidirectional WebSocket call in workerd without
-Node compatibility.
+Maintainer checks and export-resolution details are in the
+[development guide](https://github.com/wsrpc/wsrpc-ts/blob/main/DEVELOPMENT.md).
 
 ## Original project documentation
 

@@ -58,3 +58,15 @@ jobs:
       - run: npm run build
       - name: Check the emitted declarations with TypeScript 5.9
         run: npm exec --yes --package=typescript@5.9.3 -- tsc -p tsconfig.types.json
+  browser-compatibility:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

@@ -59,3 +59,12 @@ export function legacyConstructor(Client: NWsRPC.Main.WSRPC) {
     },
   });
 }
+
+// Existing untyped JavaScript proxy calls can use the legacy noWait option.
+const optionalCall: Promise<number> = browser.proxy.counter!.add!<number>(
+  { value: 1 },
+  { noWait: true },
+);
+const connected: Promise<void> = browser.onEvent("onconnect");
+void optionalCall;
+void connected;

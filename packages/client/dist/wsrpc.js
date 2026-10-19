@@ -135,8 +135,16 @@
       } catch (_) {/* Observers never affect RPC. */}
     }
     function observeFrame(direction, data) {
-      if (!options || typeof options.onFrame !== 'function') return;
       try {
+        if (!options || typeof options.onFrame !== 'function') return;
+        // Observers receive a snapshot, never a mutable transport buffer.
+        if (ArrayBuffer.isView(data)) {
+          var copy = new Uint8Array(data.byteLength);
+          copy.set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+          data = copy;
+        } else if (Object.prototype.toString.call(data) === '[object ArrayBuffer]' || Object.prototype.toString.call(data) === '[object SharedArrayBuffer]') {
+          data = data.slice(0);
+        }
         Promise.resolve(options.onFrame(Object.freeze({
           direction: direction,
           data: data
