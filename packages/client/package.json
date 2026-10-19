@@ -1,0 +1,31 @@
+{
+  "name": "@wsrpc/client",
+  "version": "4.4.1",
+  "description": "WebSocket based JSONRPC client",
+  "main": "dist/wsrpc.min.js",
+  "module": "wsrpc.es6.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wsrpc/wsrpc-js-client.git"
+  },
+  "keywords": [
+    "websocket",
+    "rpc",
+    "python",
+    "jsonrpc"
+  ],
+  "author": "Dmitry Orlov <me@mosquito.su> (https://github.com/mosquito)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wsrpc/wsrpc-js-client/issues"
+  },
+  "homepage": "https://wsrpc.info/",
+  "devDependencies": {
+    "@babel/core": "^7.4.4",
+    "@babel/preset-env": "^7.4.4",
+    "rollup": "^1.12.0",
+    "rollup-plugin-babel": "^4.3.2",
+    "typescript": "^4.5.5",
+    "uglify-js": "^2"
+  }
+}
