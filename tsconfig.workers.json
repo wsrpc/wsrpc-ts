@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "customConditions": ["workerd"],
+    "lib": ["ES2023"],
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": true,
+    "skipLibCheck": false
+  },
+  "include": ["examples/workers/**/*.ts", "worker-tests/**/*.ts"]
+}

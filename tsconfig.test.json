@@ -7,5 +7,9 @@
     "declarationMap": false
   },
   "include": ["tests/**/*.ts", "examples/**/*.ts"],
-  "exclude": ["tests/fixtures/consumer.mts", "tests/fixtures/consumer.cts"]
+  "exclude": [
+    "tests/fixtures/consumer.mts",
+    "tests/fixtures/consumer.cts",
+    "examples/workers/**"
+  ]
 }

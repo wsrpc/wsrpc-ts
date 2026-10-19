@@ -30,6 +30,14 @@
   ],
   "exports": {
     ".": {
+      "workerd": {
+        "types": "./lib/core.d.ts",
+        "default": "./lib/core.js"
+      },
+      "worker": {
+        "types": "./lib/core.d.ts",
+        "default": "./lib/core.js"
+      },
       "import": {
         "types": "./lib/index.d.ts",
         "default": "./lib/index.js"

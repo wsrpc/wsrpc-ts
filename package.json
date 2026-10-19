@@ -16,21 +16,31 @@
     "lint": "prettier --check .",
     "test": "npm run build && tsc -p tsconfig.test.json && node --test --test-timeout=15000 build/tests/*.test.js",
     "test:interop": "npm run build && tsc -p tsconfig.test.json && uv run --locked --project tests/interop python tests/interop.py",
-    "check": "npm run lint && npm run typecheck && npm run test:types && npm test",
+    "check": "npm run lint && npm run typecheck && npm run test:types && npm test && npm run test:workers",
     "pack": "npm run build && node tools/pack.mjs",
     "test:packages": "npm run pack && node tools/test-packages.mjs",
-    "test:types": "npm run build && tsc -p tsconfig.types.json"
+    "test:types": "npm run build && tsc -p tsconfig.types.json",
+    "test:workers": "npm run build && tsc -p tsconfig.workers.json && node tools/test-workers.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
+    "@cloudflare/workers-types": "^5.20261019.1",
     "@rollup/plugin-babel": "^7.1.0",
     "@rollup/plugin-terser": "^1.0.0",
     "@types/express": "^5.0.0",
+    "esbuild": "^0.28.2",
     "express": "^5.0.0",
     "fastify": "^5.0.0",
+    "miniflare": "^4.20260730.0",
     "prettier": "^3.0.0",
     "rollup": "^4.64.10",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "miniflare": {
+      "sharp": "^0.35.5",
+      "undici": "^7.29.1"
+    }
   }
 }
