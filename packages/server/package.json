@@ -14,7 +14,7 @@
     "registry": "https://registry.npmjs.org"
   },
   "name": "@wsrpc/server",
-  "version": "4.5.0",
+  "version": "4.5.1",
   "description": "Bidirectional WebSocket RPC for Node.js and TypeScript",
   "type": "module",
   "license": "Apache-2.0",
@@ -42,6 +42,6 @@
     "ws": "^8.22.0",
     "@types/ws": "^8.18.1",
     "@types/node": "^22.0.0",
-    "@wsrpc/client": "4.5.0"
+    "@wsrpc/client": "4.5.1"
   }
 }
