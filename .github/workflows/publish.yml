@@ -36,14 +36,12 @@ jobs:
         run: node tools/release-version.mjs
       - run: npm run check
       - run: npm run test:interop
-      - name: Build the npm artifact
-        run: |
-          mkdir -p artifacts
-          npm pack --ignore-scripts --pack-destination artifacts
+      - name: Build and verify both npm artifacts
+        run: npm run test:packages
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: npm-dist
-          path: artifacts/*.tgz
+          path: artifacts/
           if-no-files-found: error
   publish:
     timeout-minutes: 10
@@ -67,7 +65,7 @@ jobs:
         with:
           name: npm-dist
           path: artifacts
-      - name: Publish the tested artifact using OIDC
+      - name: Publish the client and then the server using OIDC
         env:
           DIST_TAG: ${{ needs.build.outputs.channel }}
-        run: npm publish artifacts/*.tgz --ignore-scripts --access public --tag "$DIST_TAG"
+        run: node tools/publish.mjs artifacts "$DIST_TAG"

@@ -1,0 +1,47 @@
+{
+  "author": "Dmitry Orlov <orlovdl@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wsrpc/wsrpc-ts.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://docs.wsrpc.org/typescript/",
+  "bugs": {
+    "url": "https://github.com/wsrpc/wsrpc-ts/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "name": "@wsrpc/server",
+  "version": "4.5.0",
+  "description": "Bidirectional WebSocket RPC for Node.js and TypeScript",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "dependencies": {
+    "ws": "^8.22.0",
+    "@types/ws": "^8.18.1",
+    "@types/node": "^22.0.0",
+    "@wsrpc/client": "4.5.0"
+  }
+}

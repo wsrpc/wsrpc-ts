@@ -8,3 +8,12 @@ tests/fixtures/legacy-client.js
 tests/fixtures/LICENSE
 
 tests/interop/.venv
+
+packages/client/wsrpc.es6.js
+packages/client/wsrpc.d.ts
+packages/client/src/browser.js
+packages/client/dist
+packages/client/lib
+packages/client/LICENSE
+packages/client/Makefile
+packages/client/rollup.config.js

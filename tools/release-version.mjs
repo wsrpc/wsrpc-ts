@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** Accept canonical npm versions, optionally prefixed with a lowercase v. */
@@ -25,19 +26,31 @@ export function releaseVersion(tag, prerelease = false) {
   return { version, channel: prerelease || match[4] ? "next" : "latest" };
 }
 
+/** Stamp both packages and their internal dependency before creating artifacts. */
+export function setReleaseVersion(root, version) {
+  for (const name of ["client", "server"]) {
+    const file = resolve(root, "packages", name, "package.json");
+    const meta = JSON.parse(readFileSync(file, "utf8"));
+    meta.version = version;
+    if (name === "server") meta.dependencies["@wsrpc/client"] = version;
+    writeFileSync(file, JSON.stringify(meta, null, 2) + "\n");
+  }
+}
+
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const meta = releaseVersion(
     process.env.RELEASE_TAG ?? "",
     process.env.RELEASE_PRERELEASE === "true",
   );
+  setReleaseVersion(process.cwd(), meta.version);
   execFileSync(
     "npm",
     [
-      "version",
-      meta.version,
-      "--no-git-tag-version",
-      "--allow-same-version",
+      "install",
+      "--package-lock-only",
       "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
     ],
     { stdio: "inherit" },
   );

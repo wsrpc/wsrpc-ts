@@ -1,31 +1,64 @@
 {
-  "name": "@wsrpc/client",
-  "version": "4.4.1",
-  "description": "WebSocket based JSONRPC client",
-  "main": "dist/wsrpc.min.js",
-  "module": "wsrpc.es6.js",
+  "author": "Dmitry Orlov <orlovdl@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wsrpc/wsrpc-js-client.git"
+    "url": "git+https://github.com/wsrpc/wsrpc-ts.git",
+    "directory": "packages/client"
   },
-  "keywords": [
-    "websocket",
-    "rpc",
-    "python",
-    "jsonrpc"
-  ],
-  "author": "Dmitry Orlov <me@mosquito.su> (https://github.com/mosquito)",
-  "license": "MIT",
+  "homepage": "https://docs.wsrpc.org/typescript/",
   "bugs": {
-    "url": "https://github.com/wsrpc/wsrpc-js-client/issues"
+    "url": "https://github.com/wsrpc/wsrpc-ts/issues"
   },
-  "homepage": "https://wsrpc.info/",
-  "devDependencies": {
-    "@babel/core": "^7.4.4",
-    "@babel/preset-env": "^7.4.4",
-    "rollup": "^1.12.0",
-    "rollup-plugin-babel": "^4.3.2",
-    "typescript": "^4.5.5",
-    "uglify-js": "^2"
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "name": "@wsrpc/client",
+  "version": "4.5.0",
+  "description": "Bidirectional WebSocket RPC client for browsers and Node.js",
+  "license": "MIT",
+  "main": "dist/wsrpc.min.js",
+  "module": "wsrpc.es6.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "dist",
+    "lib",
+    "src",
+    "wsrpc.es6.js",
+    "wsrpc.d.ts",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      },
+      "require": {
+        "types": "./lib/browser.d.cts",
+        "default": "./dist/wsrpc.min.js"
+      }
+    },
+    "./node": {
+      "types": "./lib/node.d.ts",
+      "import": "./lib/node.js"
+    },
+    "./core": {
+      "types": "./lib/core.d.ts",
+      "import": "./lib/core.js"
+    },
+    "./wsrpc.es6.js": {
+      "types": "./lib/browser.d.ts",
+      "import": "./lib/browser.js",
+      "default": "./wsrpc.es6.js"
+    },
+    "./wsrpc.d.ts": "./wsrpc.d.ts",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "ws": "^8.22.0",
+    "@types/ws": "^8.18.1",
+    "@types/node": "^22.0.0"
   }
 }

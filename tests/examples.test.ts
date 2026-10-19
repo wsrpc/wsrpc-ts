@@ -1,10 +1,10 @@
+import { WSRPCClient } from "@wsrpc/client/node";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AddressInfo } from "node:net";
 import { createApp as nodeApp } from "../examples/http.js";
 import { createApp as expressApp } from "../examples/express.js";
 import { createApp as fastifyApp } from "../examples/fastify.js";
-import { WSRPCClient } from "../src/index.js";
 
 for (const [name, factory] of [
   ["Node HTTP", nodeApp],

@@ -5,3 +5,6 @@ coverage/
 *.tgz
 .venv/
 __pycache__/
+
+packages/client/lib/
+artifacts/

@@ -6,5 +6,6 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "examples/**/*.ts"]
+  "include": ["tests/**/*.ts", "examples/**/*.ts"],
+  "exclude": ["tests/fixtures/consumer.mts", "tests/fixtures/consumer.cts"]
 }

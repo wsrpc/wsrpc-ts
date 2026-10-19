@@ -1,6 +1,0 @@
-/node_modules
-/.browserslistrc
-/Makefile
-/rollup.config.js
-/.*
-/package-lock.json

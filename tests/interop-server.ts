@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { AllowedRoute, WebSocketAsync } from "../src/index.js";
+import { AllowedRoute, WebSocketAsync } from "@wsrpc/server";
 
 class Counter extends AllowedRoute {
   value = 0;

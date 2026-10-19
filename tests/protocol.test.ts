@@ -1,3 +1,4 @@
+import { WSRPCClient } from "@wsrpc/client/node";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
@@ -15,9 +16,8 @@ import {
   Route,
   RPCPeer,
   WebSocketAsync,
-  WSRPCClient,
   noproxy,
-} from "../src/index.js";
+} from "@wsrpc/server";
 import { delay, fixture } from "./helpers.js";
 
 class Counter extends AllowedRoute {

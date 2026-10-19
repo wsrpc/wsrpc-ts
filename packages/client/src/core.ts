@@ -2,12 +2,13 @@
 export type Params = Record<string, unknown> | readonly unknown[];
 export type MaybePromise<T> = T | Promise<T>;
 export type Handler<P = Params, R = unknown> = (
+  this: RPCPeer,
   socket: RPCPeer,
   params: P,
 ) => MaybePromise<R>;
 // Erasure is internal: public registration preserves the callback's parameter type.
 export type RegisteredHandler =
-  Handler<any, any> | (new (socket: RPCPeer) => Route);
+  Handler<any, any> | (new (socket: RPCPeer) => Route) | Route;
 export type Routes = ReadonlyMap<string, RegisteredHandler>;
 
 export interface Transport {
@@ -82,15 +83,53 @@ export class Signal<T> {
 }
 
 const masked = new WeakSet<Function>();
+const exposed = new WeakSet<Function>();
+/** Explicitly expose a Route method, also usable as a standard method decorator. */
+export function proxy<T extends Function>(method: T): T {
+  exposed.add(method);
+  return method;
+}
 /** Mark a method as unavailable through AllowedRoute/WebSocketRoute. */
 export function noproxy<T extends Function>(method: T): T {
   masked.add(method);
   return method;
 }
 
+/** Context storage is supplied by the Node transport; the core stays browser-safe. */
+export interface InvocationContext {
+  socket: RPCPeer;
+  call?: CallEvent;
+}
+export interface ContextStorage {
+  getStore(): InvocationContext | undefined;
+  run<T>(context: InvocationContext, callback: () => T): T;
+}
+let contextStorage: ContextStorage | undefined;
+/** @internal Install an async-local storage implementation once per runtime. */
+export function setContextStorage(storage: ContextStorage): void {
+  contextStorage ??= storage;
+}
+export function getCurrentSocket(): RPCPeer {
+  const socket = contextStorage?.getStore()?.socket;
+  if (!socket) throw new Error("No active RPC context");
+  return socket;
+}
+export function getCurrentCall(): CallEvent {
+  const call = contextStorage?.getStore()?.call;
+  if (!call) throw new Error("No active RPC call");
+  return call;
+}
+function inContext<T>(context: InvocationContext, callback: () => T): T {
+  return contextStorage ? contextStorage.run(context, callback) : callback();
+}
+
 export class Route {
   static readonly methods: ReadonlySet<string> = new Set();
-  constructor(readonly socket: RPCPeer) {}
+  constructor(private readonly boundSocket?: RPCPeer) {}
+  /** Pre-created/shared routes resolve their socket from the current async call. */
+  get socket(): RPCPeer {
+    return this.boundSocket ?? getCurrentSocket();
+  }
   _resolve(name: string): (...args: any[]) => unknown {
     if (!safeName(name) || name.includes("."))
       throw new Error("Method not exposed");
@@ -108,7 +147,8 @@ export class Route {
         const allowed =
           this instanceof AllowedRoute ||
           this instanceof PrefixRoute ||
-          ctor.methods.has(actual);
+          ctor.methods.has(actual) ||
+          (typeof method === "function" && exposed.has(method));
         if (!allowed || typeof method !== "function" || masked.has(method))
           break;
         return method.bind(this) as (...args: any[]) => unknown;
@@ -129,10 +169,17 @@ export class PrefixRoute extends Route {
 export type DynamicProxy = {
   [name: string]: DynamicProxy;
 } & ((params?: Params, options?: CallOptions) => Promise<any>);
-export type TypedProxy<T> = {
-  [K in keyof T]: T[K] extends (params: infer P) => infer R
-    ? (params: P, options?: CallOptions) => Promise<Awaited<R>>
-    : TypedProxy<T[K]>;
+type TypedMethod<A extends unknown[], R, Options> = A extends []
+  ? (params?: undefined, options?: Options) => Promise<Awaited<R>>
+  : A extends [params?: unknown]
+    ? (...args: [...A, options?: Options]) => Promise<Awaited<R>>
+    : never;
+export type TypedProxy<T, Options = CallOptions> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => infer R
+    ? TypedMethod<A, R, Options>
+    : T[K] extends object
+      ? TypedProxy<T[K], Options>
+      : never;
 };
 export type RemoteProxy<T> = [T] extends [never] ? DynamicProxy : TypedProxy<T>;
 
@@ -198,6 +245,7 @@ export class RPCPeer {
   private readonly pending = new Map<number, Pending>();
   private readonly active = new Set<number>();
   private readonly instances = new Map<string, Route>();
+  private readonly usedInstances = new Set<Route>();
   private readonly timeout: number;
   private readonly maxPending: number;
   private readonly maxConcurrent: number;
@@ -221,7 +269,7 @@ export class RPCPeer {
     this.proxy = this.makeProxy("");
   }
   /** Apply a remote method contract without changing protocol behavior. */
-  remote<T>(): TypedProxy<T> {
+  remote<T extends object>(): TypedProxy<T> {
     return this.proxy as unknown as TypedProxy<T>;
   }
   get closed(): boolean {
@@ -235,12 +283,14 @@ export class RPCPeer {
   }
   addRoute<P, R>(
     name: string,
-    handler: Handler<P, R> | (new (socket: RPCPeer) => Route),
+    handler: Handler<P, R> | (new (socket: RPCPeer) => Route) | Route,
   ): void {
     if (!safeName(name)) throw new TypeError("Invalid route name");
+    this.instances.delete(name);
     this.routes.set(name, handler as RegisteredHandler);
   }
   deleteRoute(name: string): boolean {
+    this.instances.delete(name);
     return this.routes.delete(name);
   }
   private makeProxy(path: string): DynamicProxy {
@@ -391,21 +441,24 @@ export class RPCPeer {
     const root = dot < 0 ? method : method.slice(0, dot);
     const handler = this.routes.get(root);
     if (
-      handler &&
-      typeof handler === "function" &&
-      handler.prototype instanceof Route
+      handler instanceof Route ||
+      (typeof handler === "function" && handler.prototype instanceof Route)
     ) {
       let route = this.instances.get(root);
       if (!route) {
-        route = new (handler as new (socket: RPCPeer) => Route)(this);
+        route =
+          handler instanceof Route
+            ? handler
+            : new (handler as new (socket: RPCPeer) => Route)(this);
         this.instances.set(root, route);
+        this.usedInstances.add(route);
       }
       const fn = route._resolve(dot < 0 ? "init" : method.slice(dot + 1));
       return (params) => fn(params);
     }
     const fn = this.routes.get(method);
-    if (fn && !(fn.prototype instanceof Route))
-      return (params) => (fn as Handler<unknown>)(this, params);
+    if (typeof fn === "function" && !(fn.prototype instanceof Route))
+      return (params) => (fn as Handler<unknown>).call(this, this, params);
     if (method === "ping") return (params) => params;
     throw new Error("Method not exposed");
   }
@@ -415,30 +468,32 @@ export class RPCPeer {
     params: unknown,
   ): Promise<void> {
     const event = { peer: this, id, method, params };
-    try {
-      await this.notify(this.onCallStart, event);
-      if (this.ended) return;
-      const result = await this.resolve(method)(params);
-      if (!this.ended)
-        await this.send({ id, result: result === undefined ? null : result });
-      await this.notify(this.onCallSuccess, { ...event, result });
-    } catch (error) {
-      await this.notify(this.onCallFail, { ...event, error });
-      const payload: RemoteFailure = {
-        type: error instanceof Error ? error.name : "Error",
-        message: error instanceof Error ? error.message : String(error),
-      };
-      if (!this.ended) {
-        try {
-          await this.send({ id, error: payload });
-        } catch (sendError) {
-          await this.notify(this.onError, sendError);
-          await this.close(1011, "Transport failure");
+    return inContext({ socket: this, call: event }, async () => {
+      try {
+        await this.notify(this.onCallStart, event);
+        if (this.ended) return;
+        const result = await this.resolve(method)(params);
+        if (!this.ended)
+          await this.send({ id, result: result === undefined ? null : result });
+        await this.notify(this.onCallSuccess, { ...event, result });
+      } catch (error) {
+        await this.notify(this.onCallFail, { ...event, error });
+        const payload: RemoteFailure = {
+          type: error instanceof Error ? error.name : "Error",
+          message: error instanceof Error ? error.message : String(error),
+        };
+        if (!this.ended) {
+          try {
+            await this.send({ id, error: payload });
+          } catch (sendError) {
+            await this.notify(this.onError, sendError);
+            await this.close(1011, "Transport failure");
+          }
         }
+      } finally {
+        this.active.delete(id);
       }
-    } finally {
-      this.active.delete(id);
-    }
+    });
   }
   /** Reject outstanding calls immediately; handlers can observe socket.signal. */
   close(code = 1000, reason = "RPC connection closed"): Promise<void> {
@@ -452,7 +507,9 @@ export class RPCPeer {
     }
     this.pending.clear();
     this.active.clear();
-    this.closing = this.finishClose(code, reason);
+    this.closing = inContext({ socket: this }, () =>
+      this.finishClose(code, reason),
+    );
     return this.closing;
   }
   private async finishClose(code: number, reason: string): Promise<void> {
@@ -461,14 +518,15 @@ export class RPCPeer {
     } catch (error) {
       await this.notify(this.onError, error);
     }
-    for (const instance of this.instances.values()) {
+    for (const instance of this.usedInstances) {
       try {
-        await instance._onClose();
+        await inContext({ socket: this }, () => instance._onClose());
       } catch (error) {
         await this.notify(this.onError, error);
       }
     }
     this.instances.clear();
+    this.usedInstances.clear();
     await this.notify(this.onClose, this);
   }
 }

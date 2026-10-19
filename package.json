@@ -1,62 +1,36 @@
 {
-  "name": "@wsrpc/server",
-  "version": "0.1.0",
-  "description": "Bidirectional WebSocket RPC for Node.js and TypeScript",
+  "name": "wsrpc-ts",
+  "private": true,
   "type": "module",
-  "license": "Apache-2.0",
-  "author": "Dmitry Orlov <orlovdl@gmail.com>",
+  "workspaces": [
+    "packages/client",
+    "packages/server"
+  ],
   "engines": {
     "node": ">=22"
   },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "import": "./dist/core.js"
-    }
-  },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "src",
-    "LICENSE",
-    "NOTICE"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "build": "tsc -p packages/client/tsconfig.json && node tools/build-client.mjs && tsc -p packages/server/tsconfig.json",
+    "typecheck": "npm run build && tsc -p tsconfig.test.json --noEmit",
     "format": "prettier --write .",
     "lint": "prettier --check .",
-    "test": "tsc -p tsconfig.test.json && node --test --test-timeout=15000 build/tests/*.test.js",
-    "test:interop": "tsc -p tsconfig.test.json && uv run --locked --project tests/interop python tests/interop.py",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
-    "prepack": "npm run build"
-  },
-  "dependencies": {
-    "ws": "^8.22.0",
-    "@types/ws": "^8.18.1",
-    "@types/node": "^22.0.0"
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test --test-timeout=15000 build/tests/*.test.js",
+    "test:interop": "npm run build && tsc -p tsconfig.test.json && uv run --locked --project tests/interop python tests/interop.py",
+    "check": "npm run lint && npm run typecheck && npm run test:types && npm test",
+    "pack": "npm run build && node tools/pack.mjs",
+    "test:packages": "npm run pack && node tools/test-packages.mjs",
+    "test:types": "npm run build && tsc -p tsconfig.types.json"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@rollup/plugin-babel": "^7.1.0",
+    "@rollup/plugin-terser": "^1.0.0",
     "@types/express": "^5.0.0",
     "express": "^5.0.0",
     "fastify": "^5.0.0",
-    "typescript": "^7.0.2",
-    "prettier": "^3.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wsrpc/wsrpc-ts.git"
-  },
-  "homepage": "https://docs.wsrpc.org/typescript/",
-  "bugs": {
-    "url": "https://github.com/wsrpc/wsrpc-ts/issues"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org"
+    "prettier": "^3.0.0",
+    "rollup": "^4.64.10",
+    "typescript": "^7.0.2"
   }
 }

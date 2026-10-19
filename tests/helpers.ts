@@ -1,7 +1,8 @@
+import { WSRPCClient } from "@wsrpc/client/node";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { WebSocketAsync, WSRPCClient } from "../src/index.js";
-import type { ServerOptions } from "../src/index.js";
+import { WebSocketAsync } from "@wsrpc/server";
+import type { ServerOptions } from "@wsrpc/server";
 
 export async function fixture(
   RPC: typeof WebSocketAsync,

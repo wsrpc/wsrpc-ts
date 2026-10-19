@@ -1,4 +1,4 @@
-import { WSRPCClient } from "../src/index.js";
+import { WSRPCClient } from "@wsrpc/client/node";
 
 const client = await WSRPCClient.connect(
   process.argv[2] ?? "ws://127.0.0.1:8000/ws/",

@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
-import { WebSocketAsync } from "../src/index.js";
+import { WebSocketAsync } from "@wsrpc/server";
 
 class RPC extends WebSocketAsync {}
 RPC.addRoute("echo", (_socket, params: Record<string, unknown>) => params);

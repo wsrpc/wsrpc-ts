@@ -4,10 +4,19 @@ Bidirectional WebSocket RPC for Node.js and TypeScript. It uses the WSRPC
 protocol shared by `wsrpc-aiohttp`, `wsrpc-asgi` and the original browser
 client. Both ends can expose methods and call each other over one connection.
 
-The package is ESM, supports Node.js 22+, and uses `ws` for its Node transport.
-The transport-independent implementation is also exported as
-`@wsrpc/server/core`. The package name is `@wsrpc/server`; the source-checkout instructions below
-work before an npm publication.
+This repository contains two npm packages:
+
+| Package         | Purpose                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
+| `@wsrpc/client` | Existing MIT browser client, plus the typed Node client at `@wsrpc/client/node` |
+| `@wsrpc/server` | ESM Node.js 22+ server with HTTP, Express and Fastify integration               |
+
+The client is imported from [wsrpc-js-client](https://github.com/wsrpc/wsrpc-js-client)
+with its complete Git history and original browser source. CommonJS, the ESM
+module, classic script `WSRPC` global and existing distribution paths remain
+available. The shared protocol lives in `@wsrpc/client/core`; the server
+re-exports its route classes, errors and types. Both packages use version 4.5.0,
+continuing the existing client's published 4.4.1 series.
 
 ## Run from this checkout
 
@@ -36,7 +45,15 @@ node build/examples/client.js
 
 Expected output includes `{ message: 'Hello' }` and `42`, the latter produced
 by a reverse call to the client's `double` route. After `npm run build`,
-another application can install this checkout with `npm install /path/to/wsrpc-ts`.
+create both npm artifacts and install them in another application:
+
+```sh
+npm run pack
+# In your application directory:
+npm install /path/to/wsrpc-ts/artifacts/wsrpc-client-4.5.0.tgz /path/to/wsrpc-ts/artifacts/wsrpc-server-4.5.0.tgz
+```
+
+After publication, use `npm install @wsrpc/client @wsrpc/server`.
 
 ## Server API
 
@@ -78,7 +95,7 @@ destructuring for named parameters. A missing or null params field becomes
 an empty object. An undefined result becomes JSON null.
 
 ```typescript
-import { WSRPCClient } from "@wsrpc/server";
+import { WSRPCClient } from "@wsrpc/client/node";
 
 const client = await WSRPCClient.connect("ws://127.0.0.1:8000/ws/", {
   routes: new Map([
@@ -139,12 +156,48 @@ class RPC extends WebSocketAsync {}
 RPC.addRoute("counter", Counter);
 ```
 
+You can also register an already initialized Route object, including its
+application dependencies. Omit the socket argument when creating a shared object:
+
+```typescript
+import { AllowedRoute, getCurrentSocket } from "@wsrpc/server";
+
+class Service extends AllowedRoute {
+  constructor(readonly prefix: string) {
+    super();
+  }
+  async echo(params: { value: number }) {
+    const peer = this.socket;
+    await Promise.resolve();
+    // The same peer remains current after await, even across concurrent clients.
+    return { prefix: this.prefix, value: params.value, connection: peer.id };
+  }
+}
+
+// RPC.addRoute("service", new Service("configured"));
+// Helpers called from a route can use getCurrentSocket() without a socket argument.
+function currentConnection() {
+  return getCurrentSocket().id;
+}
+```
+
+A registered instance shares its application state across connections. The library
+does not overwrite its socket field: `this.socket` uses Node AsyncLocalStorage
+for the current call. `getCurrentSocket()` and `getCurrentCall()` expose the same
+context to ordinary helper functions. They throw outside a request/lifecycle
+context. Plain function handlers also receive the peer as their `this` binding;
+arrow functions use the explicit socket argument instead. `_onClose()` runs once
+per connection that used an object, with that connection's context. Shared
+application resources must therefore be disposed by the application, rather than
+by a connection close hook. Do not retain an ambient context past the request's
+lifetime.
+
 Each connection lazily creates its own route instance. Calling `counter`
 invokes `init` explicitly; `counter.add` invokes `add` without implicitly
 calling `init`. `AllowedRoute`/`WebSocketRoute` expose public prototype methods.
 Private names, constructors, getters, instance fields and Object methods are
 excluded. Use `noproxy(Counter.prototype.someMethod)` to mask a public method.
-`Route` requires an explicit static `methods` set; `PrefixRoute` exposes
+`Route` exposes an explicit static `methods` set or methods marked with `@proxy`; `PrefixRoute` exposes
 `rpc_name` as `name` (its static `prefix` can be overridden).
 
 A `WebSocketAsync` subclass owns its route registrations. Each RPCServer takes
@@ -207,8 +260,9 @@ WebSocket control frames separately.
 
 ```sh
 npm run check
+npm run test:types
 npm run test:interop
-npm pack --dry-run
+npm run test:packages
 ```
 
 `test:interop` requires uv and installs its locked Python environment under
@@ -223,31 +277,30 @@ CI runs Node 22/24/26 on Linux plus Node 24 on Windows/macOS, and a separate
 Python interoperability job. The npm artifact includes declarations, source
 maps, source and license notices. It contains no Python library implementation.
 
-Licensed under Apache-2.0. The original JavaScript interoperability fixture
-retains its MIT license. Contact: orlovdl@gmail.com.
+The server is licensed under Apache-2.0; the client retains its MIT license. Contact: orlovdl@gmail.com.
 
 ## Publishing releases
 
 The `publish.yml` workflow runs when a **GitHub Release is published**, just
 like the Python repositories. A tag push alone does not publish. The workflow
-checks out the release tag, derives the npm version from `v1.2.3` or `1.2.3`,
-runs the full checks and Python interoperability, and publishes the built
-artifact. The version changes only inside CI: no version commit or new tag is
+checks out the release tag, derives the npm version from `v4.5.0` or `4.5.0`,
+runs the full checks and Python interoperability, and publishes the tested client artifact before the server artifact. Both receive
+the tag version, including the server dependency on the client. The version changes only inside CI: no version commit or new tag is
 created. Tags may include SemVer prerelease suffixes such as `v1.2.3-rc.1`.
 Prerelease versions and releases marked prerelease use `next`; stable releases
 use `latest`. Build metadata suffixes are not used as npm release versions.
 
 Publishing uses GitHub OIDC with npm CLI 11.19.1 and the `npm` GitHub
-environment. Set up the package's npm trusted publisher once:
+environment. Set up the npm trusted publisher for **each package** once:
 
-| Setting           | Value                       |
-| ----------------- | --------------------------- |
-| Package           | `@wsrpc/server`             |
-| GitHub owner      | `wsrpc`                     |
-| Repository        | `wsrpc-ts`                  |
-| Workflow filename | `publish.yml`               |
-| Environment       | `npm`                       |
-| Allowed action    | Enable direct `npm publish` |
+| Setting           | Value                               |
+| ----------------- | ----------------------------------- |
+| Packages          | `@wsrpc/client` and `@wsrpc/server` |
+| GitHub owner      | `wsrpc`                             |
+| Repository        | `wsrpc-ts`                          |
+| Workflow filename | `publish.yml`                       |
+| Environment       | `npm`                               |
+| Allowed action    | Enable direct `npm publish`         |
 
 For a brand-new package, initialize it from an authenticated npm maintainer
 account before configuring its package settings. That account needs access
@@ -257,3 +310,15 @@ No npm package, release or tag is created by the local checks.
 See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for
 account configuration. Publish a fresh version after that connection is set
 up; npm does not allow an existing name/version to be overwritten.
+
+An interrupted publication can be rerun: an already published package is skipped
+only if its registry integrity matches the tested archive. A different artifact
+with the same name and version fails the workflow. npm publication of two
+packages is sequential, so it is not atomic.
+
+`test:types` uses strict `tsc --noEmit` with library declaration checking
+and expected compiler errors. It covers nested remote contracts, async results,
+optional/no-argument calls, browser constructor generics, handler `this`, prepared
+routes and typed signals. CI checks declarations with TypeScript 5.9 and 7.
+The packed-package test also compiles separate ESM and CommonJS consumers from
+a clean temporary install, without `skipLibCheck`.

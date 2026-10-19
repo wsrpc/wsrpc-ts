@@ -1,0 +1,8 @@
+WSRPC TypeScript server
+Copyright Dmitry Orlov and WSRPC contributors.
+
+The protocol and public API are based on wsrpc-aiohttp and wsrpc-asgi,
+licensed under Apache License 2.0. This is an independent TypeScript
+implementation. The interoperability fixture legacy-client.js is the
+original WSRPC JavaScript client, distributed under its original MIT license
+in tests/fixtures/LICENSE.

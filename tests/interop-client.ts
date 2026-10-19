@@ -1,5 +1,6 @@
+import { WSRPCClient } from "@wsrpc/client/node";
 import assert from "node:assert/strict";
-import { RemoteError, WSRPCClient } from "../src/index.js";
+import { RemoteError } from "@wsrpc/server";
 const client = await WSRPCClient.connect(process.argv[2]!, {
   routes: new Map([
     ["double", (_socket, { value }: { value: number }) => value * 2],
