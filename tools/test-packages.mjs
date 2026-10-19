@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -18,19 +19,81 @@ try {
     '{"private":true,"type":"module"}',
   );
   const manifest = JSON.parse(readFileSync("artifacts/manifest.json", "utf8"));
-  const args = [
-    "install",
-    ...manifest.map((item) => resolve("artifacts", item.filename)),
-    "--ignore-scripts",
-    "--no-audit",
-    "--no-fund",
-  ];
-  if (process.env.npm_execpath)
-    execFileSync(process.execPath, [process.env.npm_execpath, ...args], {
-      cwd: project,
-      stdio: "inherit",
-    });
-  else execFileSync("npm", args, { cwd: project, stdio: "inherit" });
+  function install(packages) {
+    const args = [
+      "install",
+      ...packages,
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+    ];
+    if (process.env.npm_execpath)
+      execFileSync(process.execPath, [process.env.npm_execpath, ...args], {
+        cwd: project,
+        stdio: "inherit",
+      });
+    else execFileSync("npm", args, { cwd: project, stdio: "inherit" });
+  }
+  const client = manifest.find((item) => item.name === "@wsrpc/client");
+  install([resolve("artifacts", client.filename)]);
+  for (const dependency of ["ws", "@types/ws", "@types/node"]) {
+    assert.equal(
+      existsSync(join(project, "node_modules", dependency)),
+      false,
+      `Browser install must not pull ${dependency}`,
+    );
+  }
+  writeFileSync(
+    join(project, "browser.mts"),
+    `
+    import WSRPC from '@wsrpc/client';
+    import { RPCPeer } from '@wsrpc/client/core';
+    const rpc = new WSRPC('ws://localhost/ws/');
+    const value: Promise<number> = rpc.call<number>('echo', 1);
+    void value; void RPCPeer;
+    // @ts-expect-error browser consumers must not inherit Node globals
+    process.cwd();
+  `,
+  );
+  writeFileSync(
+    join(project, "tsconfig.browser.json"),
+    JSON.stringify({
+      compilerOptions: {
+        strict: true,
+        noEmit: true,
+        target: "ES2023",
+        module: "NodeNext",
+        types: [],
+        lib: ["ES2023", "DOM"],
+      },
+      files: ["browser.mts"],
+    }),
+  );
+  execFileSync(
+    process.execPath,
+    [
+      join(root, "node_modules/typescript/bin/tsc"),
+      "-p",
+      "tsconfig.browser.json",
+    ],
+    { cwd: project, stdio: "inherit" },
+  );
+  // Node-only client installs its optional transport and declaration dependencies explicitly.
+  install(["ws@^8.22.0", "@types/ws@^8.18.1", "@types/node@^22"]);
+  execFileSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      "import { WSRPCClient } from '@wsrpc/client/node'; if (typeof WSRPCClient.connect !== 'function') process.exit(1)",
+    ],
+    { cwd: project, stdio: "inherit" },
+  );
+  install(
+    manifest
+      .filter((item) => item.name !== "@wsrpc/client")
+      .map((item) => resolve("artifacts", item.filename)),
+  );
   for (const file of ["consumer.mts", "consumer.cts"])
     copyFileSync(join(root, "tests/fixtures", file), join(project, file));
   execFileSync(

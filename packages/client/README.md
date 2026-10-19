@@ -20,7 +20,10 @@ The files `wsrpc.es6.js`, `dist/wsrpc.js`, `dist/wsrpc.min.js` and their source
 maps remain available. Serve `dist/wsrpc.min.js` as a classic script to get
 `window.WSRPC`. The browser client retains its reconnect behavior.
 
-For Node.js 22+, use the separately imported, typed `ws` transport:
+The browser/core package has no runtime dependencies. For Node.js 22+, install
+the optional transport with `npm install @wsrpc/client ws`. TypeScript Node
+applications also install `npm install --save-dev @types/ws @types/node`.
+Then use the separately imported, typed `ws` transport:
 
 ```javascript
 import { WSRPCClient } from "@wsrpc/client/node";

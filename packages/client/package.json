@@ -56,9 +56,16 @@
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
-  "dependencies": {
-    "ws": "^8.22.0",
+  "devDependencies": {
     "@types/ws": "^8.18.1",
     "@types/node": "^22.0.0"
+  },
+  "peerDependencies": {
+    "ws": "^8.22.0"
+  },
+  "peerDependenciesMeta": {
+    "ws": {
+      "optional": true
+    }
   }
 }
